@@ -27,12 +27,12 @@ if command -v npm >/dev/null 2>&1; then
 fi
 
 cat >&2 <<'EOF'
-error: Stattic install currently requires Node.js with npm.
+error: Unable to install Stattic automatically in this environment.
 
-Install Node.js, then re-run:
-  curl -fsSL https://stattic.net/install.sh | bash
-
-Or install directly with:
+Try again with:
   npx skills add batuhan/stattic-skill --skill stattic -g
+
+Or:
+  curl -fsSL https://stattic.net/install.sh | bash
 EOF
 exit 1

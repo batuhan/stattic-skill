@@ -14,6 +14,18 @@ If you want a curlable bootstrap instead:
 curl -fsSL https://stattic.net/install.sh | bash
 ```
 
+## Publish
+
+```bash
+./stattic/scripts/publish.sh ./dist
+```
+
+Update an existing project:
+
+```bash
+./stattic/scripts/publish.sh ./dist --project my-project
+```
+
 ## Repository layout
 
 - `stattic/SKILL.md`: the installable skill entrypoint

@@ -38,7 +38,7 @@ elif command -v npx >/dev/null 2>&1; then
 elif command -v npm >/dev/null 2>&1; then
   CLI_CMD=(npm exec --yes --package=@automattic/stattic-cli -- stattic)
 else
-  die "requires the Stattic CLI or Node.js with npm. Install via curl -fsSL https://stattic.net/install.sh | bash"
+  die "unable to find the Stattic CLI in this environment. Re-run curl -fsSL https://stattic.net/install.sh | bash"
 fi
 
 CLIENT_VALUE="${STATTIC_PUBLISH_CLIENT:-skills.sh/publish-sh}"

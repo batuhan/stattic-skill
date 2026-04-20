@@ -10,131 +10,129 @@ description: >
 
 # Stattic
 
-Create a live URL from a file or folder. Stattic uses one project-first model:
-create or resolve a project, create a publish session, upload only changed files,
-finalize, then share the live project URL and, for claimed projects, the immutable
-deployment URL.
+Create a live URL from any file or folder. Stattic uses one project-first
+model: create or resolve a project, create a publish session, upload only
+changed files, finalize, then share the live project URL and immutable
+deployment URL when available.
 
-## Fast path
+To install or update (recommended): `npx skills add batuhan/stattic-skill --skill stattic -g`
 
-```bash
-npx @automattic/stattic-cli publish ./dist
-```
-
-This creates a project if needed, uploads changed files, finalizes the publish,
-and prints the live URL plus the immutable deployment URL when available.
+If npm is not available, use: `curl -fsSL https://stattic.net/install.sh | bash`
 
 ## Requirements
 
-- Node.js 22+
 - Optional environment variable: `$STATTIC_API_KEY`
 - Optional credentials file: `~/.stattic/credentials`
 - Local state file: `.stattic/state.json`
 
-## Auth model
-
-Without an API key, Stattic creates an anonymous project that expires in 24
-hours. Anonymous project creation returns:
-
-- `claimToken`
-- `claimUrl`
-- `expiresAt`
-
-`claimToken` and `claimUrl` are returned only once on creation. Save them
-immediately. The CLI stores them in `.stattic/state.json`. Claiming a project
-immediately invalidates the claim token.
-
-With an account API key, the project is created as a managed project and does
-not need a claim link. Managed API keys are sent as
-`Authorization: Bearer <token>`.
-
-For agent follow-up work, use the returned `project.id` as the canonical
-reference.
-
 ## Create a project
 
-The direct API flow is:
+```bash
+./scripts/publish.sh {file-or-dir}
+```
 
-1. `POST /v1/projects`
-2. `POST /v1/projects/:projectId/deployments` with the desired file manifest
-3. Upload each returned `uploads[]` instruction directly to staging storage
-4. If a multipart upload is used, complete or abort it with:
-   - `POST /v1/projects/:projectId/deployments/:deploymentId/uploads/multipart/complete`
-   - `POST /v1/projects/:projectId/deployments/:deploymentId/uploads/multipart/abort`
-5. If upload URLs expire, refresh them with:
-   - `POST /v1/projects/:projectId/deployments/:deploymentId/uploads/refresh`
-6. Finalize with:
-   - `POST /v1/projects/:projectId/deployments/:deploymentId/finalize`
+Outputs the live URL for the current project. When the project is anonymous,
+the publish also returns a claim URL and expiry time.
 
-Finalize is asynchronous. Wait for the project operation to settle before
-treating the new release as live.
+Without an API key this creates an anonymous project that expires in 24 hours.
+With a saved API key, the project is managed and does not need a claim link.
 
 ## Update an existing project
 
 ```bash
-npx @automattic/stattic-cli publish ./dist --project prj_123
+./scripts/publish.sh {file-or-dir} --project {project-ref}
 ```
 
-Use the returned `project.id` for follow-up deploys, claim flows, and metadata
-updates. Do not switch to slug or domain references when the project id is
-already available.
+The wrapper auto-loads the saved `claimToken` from `.stattic/state.json`
+when updating anonymous projects. Pass `--claim-token {token}` to override.
 
-For anonymous follow-up deploys, reuse the saved `claimToken`. Direct API
-clients can send it with `X-Stattic-Claim-Token`. Managed API clients send
-`Authorization: Bearer <token>`. After claim, token-based project access
-stops working and organization-scoped routes require account auth.
+Use the returned `project.id` as the canonical reference for follow-up
+publishes, claim flows, and metadata updates.
 
-The CLI loads credentials in this order:
+## Client attribution
 
-1. `--api-key`
-2. `$STATTIC_API_KEY`
-3. `~/.stattic/credentials`
-4. saved `claimToken` from `.stattic/state.json`
-
-If the manifest includes `sha256`, unchanged files are skipped instead of
-being uploaded again.
-
-## Claim flow
-
-For the normal human flow, share the returned `claimUrl`. The user opens it in
-the dashboard, signs in with WordPress.com, and claims the project there.
-
-Claim URLs are browser-only links, not API credentials.
-
-Agents with an account API key can also claim directly with:
-
-- `POST /v1/projects/claim`
-
-The CLI wraps those flows with:
+Pass `--client` so Stattic can track publish reliability by agent:
 
 ```bash
-npx @automattic/stattic-cli claim --project prj_123 --organization acme --api-key <token>
+./scripts/publish.sh {file-or-dir} --client cursor
 ```
+
+If omitted, the wrapper sends a default `skills.sh/publish-sh` client name.
+
+## API key storage
+
+The publish wrapper and CLI read the API key from these sources, in order:
+
+1. `--api-key {key}`
+2. `$STATTIC_API_KEY`
+3. `~/.stattic/credentials`
+
+To store a key, write it to the credentials file:
+
+```bash
+mkdir -p ~/.stattic && echo "{API_KEY}" > ~/.stattic/credentials && chmod 600 ~/.stattic/credentials
+```
+
+Never commit credentials or local state files.
+
+## State file
+
+After every create or update, Stattic stores local project metadata in
+`.stattic/state.json` in the working directory. That cache may include:
+
+- `projectId`
+- `claimToken`
+- `claimUrl`
+- `expiresAt`
+- last live and immutable deployment URLs
+
+Treat `.stattic/state.json` as local cache only. Never use it as the source
+of truth for auth mode, expiry, or claim URLs when the current publish output
+already provides those values.
 
 ## Project conventions
 
-Stattic understands these publishing inputs during deployment creation or project setup:
+Stattic understands these publishing inputs during deployment creation or
+project setup:
 
 - `_redirects`
 - supported `_headers`
 - nearest `404.html`
 - `.stattic/config.json`
 
-Use `.stattic/config.json` for project-level behavior such as:
+Use `.stattic/config.json` for project-level behavior such as SPA mode,
+viewer title, viewer description, and OG image path.
 
-- SPA mode
-- viewer title
-- viewer description
-- OG image path
+## Claim flow
 
-`_redirects` and `_headers` are compiled as deployment conventions.
-`.stattic/config.json` is project configuration, not an uploaded runtime file.
+For the normal human flow, share the returned `claimUrl`. The user opens it
+in the dashboard, signs in with WordPress.com, and claims the project there.
+
+Claim URLs are browser-only links, not API credentials.
+
+Agents with an account API key can also claim directly with:
+
+```bash
+npx @automattic/stattic-cli claim --project prj_123 --organization acme --api-key <token>
+```
 
 ## What to tell the user
 
 - Always share the live URL from the current publish run.
+- Read and follow the `publish_result.*` lines from stderr.
+- When `publish_result.auth_mode=authenticated`, tell the user the project is managed and does not expire.
+- When `publish_result.auth_mode=anonymous`, tell the user it expires in 24 hours until claimed.
+- Share the `claimUrl` whenever `publish_result.claim_url` is present.
 - When available, also share the immutable deployment URL.
-- If the publish is anonymous, tell the user it expires in 24 hours until claimed.
-- Anonymous publishes do not expose deployment URLs until claimed.
-- Share the `claimUrl` for anonymous publishes.
-- Treat `.stattic/state.json` as local cache only, not the source of truth.
+- Never tell the user to inspect `.stattic/state.json` for claim or auth details.
+
+## Common options
+
+| Flag | Description |
+| ---- | ----------- |
+| `--project {ref}` | Update an existing project by id, domain/URL, or slug |
+| `--organization {slug}` | Required with bare slugs and claim flows |
+| `--api-key {key}` | Managed API key override |
+| `--claim-token {token}` | Override anonymous project access token |
+| `--client {name}` | Agent attribution header value |
+| `--api-url {url}` | API base override for local development |
