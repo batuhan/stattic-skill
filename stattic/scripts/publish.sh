@@ -8,7 +8,6 @@ Usage: ./scripts/publish.sh <file-or-dir> [stattic publish options]
 Examples:
   ./scripts/publish.sh ./dist
   ./scripts/publish.sh ./dist --project my-project
-  ./scripts/publish.sh ./dist --access-token stat_123
 USAGE
   exit 1
 }

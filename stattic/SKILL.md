@@ -54,9 +54,9 @@ Use the returned `project.id` as the canonical reference for follow-up
 publishes, claim flows, and metadata updates.
 
 For anonymous follow-up deploys, reuse the saved `claimToken`. Direct API
-clients can send it with `X-Stattic-Claim-Token`. Managed API clients send
-`x-stattic-access-token: <token>`. After claim, token-based project access
-stops working and organization-scoped routes require account auth.
+clients send it with `X-Stattic-Claim-Token`. Managed API clients use
+account auth. After claim, token-based project access stops working and
+organization-scoped routes require account auth.
 
 ## Client attribution
 
@@ -146,7 +146,7 @@ Otherwise pass `--organization`.
 | ---- | ----------- |
 | `--project {ref}` | Update an existing project by id, domain/URL, or slug |
 | `--organization {slug}` | Required with bare slugs and multi-organization claim flows |
-| `--access-token {token}` | Managed account access token override |
+| `--access-token` | One-off managed account token override; prefer login or env |
 | `--claim-token {token}` | Override anonymous project access token |
 | `--client {name}` | Agent attribution header value |
 | `--api-url {url}` | API base override for local development |
