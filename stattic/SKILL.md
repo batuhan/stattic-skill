@@ -17,10 +17,13 @@ deployment URL when available.
 
 To install or update (recommended): `npx skills add batuhan/stattic-skill --skill stattic -g -y`
 
-If npm is not available, use: `curl -fsSL https://stattic.net/install.sh | bash`
+This skill expects the `stattic` CLI to be installed locally before publishing.
+Install and review `@bi/stattic-cli` with your package manager, then verify
+`stattic --version` works.
 
 ## Requirements
 
+- Local command: `stattic` or `$STATTIC_CLI_BIN`
 - Optional environment variable: `$STATTIC_ACCESS_TOKEN`
 - Optional auth file: `~/.stattic/auth.json`
 - Local state file: `.stattic/state.json`
@@ -69,17 +72,19 @@ If omitted, the wrapper sends a default `skills.sh/publish-sh` client name.
 
 The publish wrapper and CLI read access tokens from these sources, in order:
 
-1. `--access-token {token}`
-2. `$STATTIC_ACCESS_TOKEN`
-3. `~/.stattic/auth.json`
+1. `$STATTIC_ACCESS_TOKEN`
+2. `~/.stattic/auth.json`
+3. `--access-token`, only when the user explicitly provides it for a single command
 
 The CLI login flow writes `~/.stattic/auth.json` automatically:
 
 ```bash
-npx @bi/stattic-cli login
+stattic login
 ```
 
-Never commit credentials or local state files.
+Never print, echo, log, or commit credentials or local state files. Prefer the
+login flow or an already configured `STATTIC_ACCESS_TOKEN`; do not ask the
+user to paste tokens into commands unless there is no other option.
 
 ## State file
 
@@ -119,7 +124,7 @@ Claim URLs are browser-only links, not API credentials.
 Agents with an account access token can also claim directly with:
 
 ```bash
-npx @bi/stattic-cli claim --project prj_123 --access-token <token>
+stattic claim --project prj_123
 ```
 
 If the account has exactly one organization, the CLI uses it automatically.

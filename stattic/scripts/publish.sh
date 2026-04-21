@@ -33,12 +33,8 @@ if [[ -n "${STATTIC_CLI_BIN:-}" ]]; then
   CLI_CMD=("$STATTIC_CLI_BIN")
 elif command -v stattic >/dev/null 2>&1; then
   CLI_CMD=("$(command -v stattic)")
-elif command -v npx >/dev/null 2>&1; then
-  CLI_CMD=(npx --yes @bi/stattic-cli)
-elif command -v npm >/dev/null 2>&1; then
-  CLI_CMD=(npm exec --yes --package=@bi/stattic-cli -- stattic)
 else
-  die "unable to find the Stattic CLI in this environment. Re-run curl -fsSL https://stattic.net/install.sh | bash"
+  die "unable to find the Stattic CLI. Install and review @bi/stattic-cli, then re-run this command."
 fi
 
 CLIENT_VALUE="${STATTIC_PUBLISH_CLIENT:-skills.sh/publish-sh}"

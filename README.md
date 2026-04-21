@@ -9,10 +9,7 @@ npx skills add batuhan/stattic-skill --skill stattic -g -y
 ```
 
 If you want a curlable bootstrap instead:
-
-```bash
-curl -fsSL https://stattic.net/install.sh | bash
-```
+review https://stattic.net/install.sh in a browser before running it locally.
 
 ## Publish
 
