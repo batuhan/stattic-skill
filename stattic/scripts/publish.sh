@@ -31,6 +31,8 @@ shift
 CLI_CMD=()
 if [[ -n "${STATTIC_CLI_BIN:-}" ]]; then
   CLI_CMD=("$STATTIC_CLI_BIN")
+elif [[ -f "$(dirname "$0")/stattic-cli.js" ]] && command -v node >/dev/null 2>&1; then
+  CLI_CMD=(node "$(dirname "$0")/stattic-cli.js")
 elif command -v stattic >/dev/null 2>&1; then
   CLI_CMD=("$(command -v stattic)")
 elif command -v npx >/dev/null 2>&1; then
