@@ -15790,6 +15790,7 @@ config(en_default());
 var projectState = external_exports.enum(["active", "deleting", "deleted"]);
 var projectMode = external_exports.enum(["website", "files"]);
 var deploymentSourceType = external_exports.enum(["direct-upload", "git", "settings"]);
+var publishTarget = external_exports.enum(["live", "deployment"]);
 var deploymentStatus = external_exports.enum([
   "draft",
   "building",
@@ -15842,7 +15843,7 @@ var domainHostnamePurpose = external_exports.enum(["configured", "apex", "www"])
 var domainSslStatus = external_exports.enum(["active", "pending", "broken", "missing"]);
 var gitProvider = external_exports.enum(["github", "gitlab", "bitbucket"]);
 var cachePurgeAction = external_exports.enum(["invalidate", "delete"]);
-var cachePurgeTarget = external_exports.enum(["project", "hostname", "path"]);
+var cachePurgeTarget = external_exports.enum(["project", "domain", "path"]);
 var bullJobStatus = external_exports.enum([
   "active",
   "completed",
@@ -16131,10 +16132,9 @@ var ProjectSchema = external_exports.object({
   slug: external_exports.string(),
   title: external_exports.string(),
   state: projectState,
-  liveUrl: external_exports.string(),
+  liveUrl: external_exports.string().describe("Live project URL served from the WordPress.com edge network."),
   mode: projectMode,
   spa: external_exports.boolean(),
-  branchAliasUrlPattern: external_exports.string().nullable(),
   passwordProtectionEnabled: external_exports.boolean(),
   passwordVersion: external_exports.number().int(),
   viewer: ProjectViewerSchema,
@@ -16250,7 +16250,7 @@ var UsageSchema = external_exports.object({
   usage: external_exports.object({
     projects: external_exports.number().int(),
     domains: external_exports.number().int(),
-    seats: external_exports.number().int()
+    members: external_exports.number().int()
   })
 }).openapi("Usage");
 
@@ -16324,10 +16324,10 @@ function rejectFilesSpaCombination(value, ctx) {
   }
 }
 var AnonymousProjectAccessSchema = external_exports.object({
-  claimToken: external_exports.string().nullable(),
-  claimUrl: external_exports.string().nullable(),
-  expiresAt: external_exports.string().datetime().nullable(),
-  warning: external_exports.string()
+  claimToken: external_exports.string().nullable().describe("One-time, project-scoped credential returned only at anonymous project creation. Save it immediately \u2014 it is never shown again and is required to publish and manage the project until it is claimed."),
+  claimUrl: external_exports.string().nullable().describe("Browser-only link that lets a human sign in with WordPress.com and claim this project into an organization. Not an API credential."),
+  expiresAt: external_exports.string().datetime().nullable().describe("When the unclaimed project expires if nobody publishes to it or claims it."),
+  warning: external_exports.string().describe("Human-readable notice explaining that the project is anonymous and will expire unless claimed.")
 }).openapi("AnonymousProjectAccess");
 var ProjectCreateResponseSchema = external_exports.object({
   project: ProjectSchema,
@@ -16384,12 +16384,12 @@ var projectBranchAliasSchema = external_exports.object({
   updatedAt: external_exports.string().datetime()
 }).openapi("ProjectBranchAlias");
 var projectGitStateSchema = projectGitConfigSchema.partial().extend({
-  branchAliasUrlPattern: external_exports.string().nullable().optional(),
   aliases: external_exports.array(projectBranchAliasSchema).optional()
 }).openapi("ProjectGitState");
 var projectDeploymentCreateSchema = external_exports.object({
   sourceType: external_exports.enum(["direct-upload", "git"]).default("direct-upload"),
   sourceRevision: external_exports.string().optional(),
+  publishTarget: publishTarget.default("live").describe("`live` (default) creates a deployment and promotes it to the live project URL after finalize. `deployment` creates a deployment only \u2014 the immutable deployment URL is produced, but the live pointer is not touched."),
   files: external_exports.array(manifestFileSchema).default([])
 }).openapi("ProjectDeploymentCreateRequest");
 var projectDeploymentIntentResponseSchema = external_exports.object({
@@ -16429,10 +16429,8 @@ var asyncMutationQuerySchema = external_exports.object({
   async: external_exports.union([external_exports.literal("1"), external_exports.literal("true")]).optional()
 }).openapi("AsyncMutationQuery");
 var projectRuntimeStatusSchema = external_exports.object({
-  liveDeploymentId: external_exports.string().nullable(),
-  liveUrl: external_exports.string().nullable(),
-  immutableUrlPattern: external_exports.string().nullable(),
-  branchAliasUrlPattern: external_exports.string().nullable(),
+  liveDeploymentId: external_exports.string().nullable().describe("Deployment that the live project URL currently points to, if any."),
+  liveUrl: external_exports.string().nullable().describe("Live project URL. Flips to the latest deployment after a successful publish to `live`."),
   mode: projectMode,
   operation: AsyncOperationSchema.nullable()
 }).openapi("ProjectRuntimeStatus");
@@ -17352,17 +17350,17 @@ async function runDomains(parsed) {
           },
           domainListSchema
         );
-        const boundDomain = projectDomains.domains.find((domain2) => domain2.id === created.id);
-        if (!boundDomain?.bindingId) {
+        const assignedDomain = projectDomains.domains.find((domain2) => domain2.id === created.id);
+        if (!assignedDomain?.bindingId) {
           throw new Error(
-            `Domain ${created.hostname} was created but its project binding is missing.`
+            `Domain ${created.hostname} was created but its project assignment is missing.`
           );
         }
         await apiRequest(
           context.apiClient,
           {
             method: "PATCH",
-            pathname: `/v1/projects/${context.project.id}/domain-bindings/${boundDomain.bindingId}`,
+            pathname: `/v1/projects/${context.project.id}/domain-bindings/${assignedDomain.bindingId}`,
             body: {
               mode: "redirect",
               redirectDestination,

@@ -76,7 +76,7 @@ The publish wrapper and CLI read access tokens from these sources, in order:
 The CLI login flow writes `~/.stattic/auth.json` automatically:
 
 ```bash
-npx @automattic/stattic-cli login
+npx @bi/stattic-cli login
 ```
 
 Never commit credentials or local state files.
@@ -119,7 +119,7 @@ Claim URLs are browser-only links, not API credentials.
 Agents with an account access token can also claim directly with:
 
 ```bash
-npx @automattic/stattic-cli claim --project prj_123 --access-token <token>
+npx @bi/stattic-cli claim --project prj_123 --access-token <token>
 ```
 
 If the account has exactly one organization, the CLI uses it automatically.

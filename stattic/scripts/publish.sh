@@ -36,9 +36,9 @@ elif [[ -f "$(dirname "$0")/stattic-cli.js" ]] && command -v node >/dev/null 2>&
 elif command -v stattic >/dev/null 2>&1; then
   CLI_CMD=("$(command -v stattic)")
 elif command -v npx >/dev/null 2>&1; then
-  CLI_CMD=(npx --yes @automattic/stattic-cli)
+  CLI_CMD=(npx --yes @bi/stattic-cli)
 elif command -v npm >/dev/null 2>&1; then
-  CLI_CMD=(npm exec --yes --package=@automattic/stattic-cli -- stattic)
+  CLI_CMD=(npm exec --yes --package=@bi/stattic-cli -- stattic)
 else
   die "unable to find the Stattic CLI in this environment. Re-run curl -fsSL https://stattic.net/install.sh | bash"
 fi
