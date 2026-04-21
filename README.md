@@ -5,7 +5,7 @@ Public skill repository for Stattic.
 ## Install
 
 ```bash
-npx skills add batuhan/stattic-skill --skill stattic -g
+npx skills add batuhan/stattic-skill --skill stattic -g -y
 ```
 
 If you want a curlable bootstrap instead:

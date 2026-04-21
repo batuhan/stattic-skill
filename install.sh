@@ -3,7 +3,7 @@ set -euo pipefail
 
 SKILL_REPO="batuhan/stattic-skill"
 SKILL_NAME="stattic"
-DEFAULT_ARGS=(add "$SKILL_REPO" --skill "$SKILL_NAME" -g)
+DEFAULT_ARGS=(add "$SKILL_REPO" --skill "$SKILL_NAME" -g -y)
 
 run() {
   printf '==> %s\n' "$*" >&2
@@ -30,7 +30,7 @@ cat >&2 <<'EOF'
 error: Unable to install Stattic automatically in this environment.
 
 Try again with:
-  npx skills add batuhan/stattic-skill --skill stattic -g
+  npx skills add batuhan/stattic-skill --skill stattic -g -y
 
 Or:
   curl -fsSL https://stattic.net/install.sh | bash

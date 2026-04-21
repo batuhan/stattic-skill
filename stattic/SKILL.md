@@ -15,14 +15,14 @@ model: create or resolve a project, create a publish session, upload only
 changed files, finalize, then share the live project URL and immutable
 deployment URL when available.
 
-To install or update (recommended): `npx skills add batuhan/stattic-skill --skill stattic -g`
+To install or update (recommended): `npx skills add batuhan/stattic-skill --skill stattic -g -y`
 
 If npm is not available, use: `curl -fsSL https://stattic.net/install.sh | bash`
 
 ## Requirements
 
-- Optional environment variable: `$STATTIC_API_KEY`
-- Optional credentials file: `~/.stattic/credentials`
+- Optional environment variable: `$STATTIC_ACCESS_TOKEN`
+- Optional auth file: `~/.stattic/auth.json`
 - Local state file: `.stattic/state.json`
 
 ## Create a project
@@ -34,8 +34,9 @@ If npm is not available, use: `curl -fsSL https://stattic.net/install.sh | bash`
 Outputs the live URL for the current project. When the project is anonymous,
 the publish also returns a claim URL and expiry time.
 
-Without an API key this creates an anonymous project that expires in 24 hours.
-With a saved API key, the project is managed and does not need a claim link.
+Without an access token this creates an anonymous project that expires in 24
+hours. With a saved access token, the project is managed and does not need a
+claim link.
 
 ## Update an existing project
 
@@ -49,6 +50,11 @@ when updating anonymous projects. Pass `--claim-token {token}` to override.
 Use the returned `project.id` as the canonical reference for follow-up
 publishes, claim flows, and metadata updates.
 
+For anonymous follow-up deploys, reuse the saved `claimToken`. Direct API
+clients can send it with `X-Stattic-Claim-Token`. Managed API clients send
+`x-stattic-access-token: <token>`. After claim, token-based project access
+stops working and organization-scoped routes require account auth.
+
 ## Client attribution
 
 Pass `--client` so Stattic can track publish reliability by agent:
@@ -59,18 +65,18 @@ Pass `--client` so Stattic can track publish reliability by agent:
 
 If omitted, the wrapper sends a default `skills.sh/publish-sh` client name.
 
-## API key storage
+## Access token storage
 
-The publish wrapper and CLI read the API key from these sources, in order:
+The publish wrapper and CLI read access tokens from these sources, in order:
 
-1. `--api-key {key}`
-2. `$STATTIC_API_KEY`
-3. `~/.stattic/credentials`
+1. `--access-token {token}`
+2. `$STATTIC_ACCESS_TOKEN`
+3. `~/.stattic/auth.json`
 
-To store a key, write it to the credentials file:
+The CLI login flow writes `~/.stattic/auth.json` automatically:
 
 ```bash
-mkdir -p ~/.stattic && echo "{API_KEY}" > ~/.stattic/credentials && chmod 600 ~/.stattic/credentials
+npx @automattic/stattic-cli login
 ```
 
 Never commit credentials or local state files.
@@ -110,11 +116,14 @@ in the dashboard, signs in with WordPress.com, and claims the project there.
 
 Claim URLs are browser-only links, not API credentials.
 
-Agents with an account API key can also claim directly with:
+Agents with an account access token can also claim directly with:
 
 ```bash
-npx @automattic/stattic-cli claim --project prj_123 --organization acme --api-key <token>
+npx @automattic/stattic-cli claim --project prj_123 --access-token <token>
 ```
+
+If the account has exactly one organization, the CLI uses it automatically.
+Otherwise pass `--organization`.
 
 ## What to tell the user
 
@@ -131,8 +140,8 @@ npx @automattic/stattic-cli claim --project prj_123 --organization acme --api-ke
 | Flag | Description |
 | ---- | ----------- |
 | `--project {ref}` | Update an existing project by id, domain/URL, or slug |
-| `--organization {slug}` | Required with bare slugs and claim flows |
-| `--api-key {key}` | Managed API key override |
+| `--organization {slug}` | Required with bare slugs and multi-organization claim flows |
+| `--access-token {token}` | Managed account access token override |
 | `--claim-token {token}` | Override anonymous project access token |
 | `--client {name}` | Agent attribution header value |
 | `--api-url {url}` | API base override for local development |
