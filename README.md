@@ -8,9 +8,6 @@ Public skill repository for Stattic.
 npx skills add batuhan/stattic-skill --skill stattic -g -y
 ```
 
-If you want a curlable bootstrap instead:
-review https://stattic.net/install.sh in a browser before running it locally.
-
 ## Publish
 
 ```bash
@@ -27,6 +24,5 @@ Update an existing project:
 
 - `stattic/SKILL.md`: the installable skill entrypoint
 - `stattic/scripts/publish.sh`: thin shell wrapper around the Stattic CLI
-- `install.sh`: convenience installer for the `skills` CLI flow
 
 This repository is generated from the Stattic monorepo. Edit the source there, not here.
