@@ -1,152 +1,105 @@
 ---
 name: stattic
-description: >
-  Publish files and folders to Stattic with anonymous-first deploys,
-  browser-based claim links, managed deployments for claimed projects, and
-  agent-friendly project updates. Use when asked to "publish this", "host
-  this", "deploy this", "share this on the web", "upload this folder",
-  "update this site", or "give me a live URL".
+description: Publish files, folders, and static sites to Stattic; update existing Stattic projects; return live and immutable URLs; handle anonymous publish and claim links. Use when Codex is asked to publish, host, deploy, share on the web, upload a folder, update a Stattic project, inspect a Stattic deployment, or get a live URL.
 ---
 
 # Stattic
 
-Create a live URL from any file or folder. Stattic uses one project-first
-model: create or resolve a project, create a publish session, upload only
-changed files, finalize, then share the live project URL and immutable
-deployment URL when available.
+Use the Stattic CLI to publish static files and folders to a project-backed live URL.
 
-To install or update (recommended): `npx skills add batuhan/stattic-skill --skill stattic -g -y`
+## Fast Path
 
-This skill expects the `stattic` CLI to be installed locally before publishing.
-Install and review `@bi/stattic-cli` with your package manager, then verify
-`stattic --version` works.
-
-## Requirements
-
-- Local command: `stattic` or `$STATTIC_CLI_BIN`
-- Optional environment variable: `$STATTIC_ACCESS_TOKEN`
-- Optional auth file: `~/.stattic/auth.json`
-- Local state file: `.stattic/state.json`
-
-## Create a project
+Run:
 
 ```bash
-./scripts/publish.sh {file-or-dir}
+stattic publish {file-or-dir}
 ```
 
-Outputs the live URL for the current project. When the project is anonymous,
-the publish also returns a claim URL and expiry time.
-
-Without an access token this creates an anonymous project that expires in 24
-hours. With a saved access token, the project is managed and does not need a
-claim link.
-
-## Update an existing project
+Use `--json` when another tool or script needs to parse the result:
 
 ```bash
-./scripts/publish.sh {file-or-dir} --project {project-ref}
+stattic publish {file-or-dir} --json
 ```
 
-The wrapper auto-loads the saved `claimToken` from `.stattic/state.json`
-when updating anonymous projects. Pass `--claim-token {token}` to override.
+If `stattic` is unavailable but `$STATTIC_CLI_BIN` is set, run that binary instead.
 
-Use the returned `project.id` as the canonical reference for follow-up
-publishes, claim flows, and metadata updates.
+## What To Share
 
-For anonymous follow-up deploys, reuse the saved `claimToken`. Direct API
-clients send it with `X-Stattic-Claim-Token`. Managed API clients use
-account auth. After claim, token-based project access stops working and
-organization-scoped routes require account auth.
+After publishing, report the useful URLs from the receipt:
 
-## Client attribution
+- live project URL
+- immutable deployment URL, when present
+- claim link and expiry, when the publish created an anonymous project
 
-Pass `--client` so Stattic can track publish reliability by agent:
+Do not print access tokens, claim tokens, auth files, or the contents of `.stattic/state.json`.
+
+## Project State
+
+The first publish writes `.stattic/state.json` in the published directory. Keep it there. Publishing the same directory again updates the same project.
+
+For a new target, publish from that target directory or pass the target path explicitly. Do not delete or rewrite `.stattic/state.json` unless the user explicitly wants a new project.
+
+## Authentication
+
+Prefer existing auth in this order:
+
+1. `stattic login`
+2. `$STATTIC_TOKEN`
+3. saved CLI auth
+4. anonymous publish
+
+Anonymous projects can be published without sign-in. Share the returned claim link so the user can keep the project permanently.
+
+To claim a saved anonymous project:
 
 ```bash
-./scripts/publish.sh {file-or-dir} --client cursor
+stattic claim
 ```
 
-If omitted, the wrapper sends a default `skills.sh/publish-sh` client name.
+Use `--organization` only when the user gives an organization or the local context makes the target organization clear.
 
-## Access token storage
+## Useful Commands
 
-The publish wrapper and CLI read access tokens from these sources, in order:
+- `stattic init` creates `.stattic/config.json` without publishing.
+- `stattic publish . --dry-run` checks the publish plan.
+- `stattic inspect` shows the selected project's status and URLs.
+- `stattic deployments` lists deployments and marks the live one.
+- `stattic domains`, `stattic variables`, and `stattic password` manage claimed project settings.
+- `stattic doctor` diagnoses local CLI setup.
 
-1. `$STATTIC_ACCESS_TOKEN`
-2. `~/.stattic/auth.json`
-3. `--access-token`, only when the user explicitly provides it for a single command
+## Project Files
 
-The CLI login flow writes `~/.stattic/auth.json` automatically:
+Stattic recognizes these files in the published directory:
 
-```bash
-stattic login
-```
-
-Never print, echo, log, or commit credentials or local state files. Prefer the
-login flow or an already configured `STATTIC_ACCESS_TOKEN`; do not ask the
-user to paste tokens into commands unless there is no other option.
-
-## State file
-
-After every create or update, Stattic stores local project metadata in
-`.stattic/state.json` in the working directory. That cache may include:
-
-- `projectId`
-- `claimToken`
-- `claimUrl`
-- `expiresAt`
-- last live and immutable deployment URLs
-
-Treat `.stattic/state.json` as local cache only. Never use it as the source
-of truth for auth mode, expiry, or claim URLs when the current publish output
-already provides those values.
-
-## Project conventions
-
-Stattic understands these publishing inputs during deployment creation or
-project setup:
-
-- `_redirects`
-- supported `_headers`
+- `_redirects` for redirects, rewrites, custom 404 rules, and external `200` proxy rules
+- `_headers` for supported response headers and Basic Auth
 - nearest `404.html`
-- `.stattic/config.json`
+- `.stattic/config.json` for project metadata, mode, SPA behavior, and viewer metadata
 
-Use `.stattic/config.json` for project-level behavior such as SPA mode,
-viewer title, viewer description, and OG image path.
+Use `_redirects` for proxying:
 
-## Claim flow
-
-For the normal human flow, share the returned `claimUrl`. The user opens it
-in the dashboard, signs in with WordPress.com, and claims the project there.
-
-Claim URLs are browser-only links, not API credentials.
-
-Agents with an account access token can also claim directly with:
-
-```bash
-stattic claim --project prj_123
+```text
+/api/* https://api.example.com/:splat 200
 ```
 
-If the account has exactly one organization, the CLI uses it automatically.
-Otherwise pass `--organization`.
+Do not create `.stattic/proxy.json`. Internal `200` destinations are rewrites; only absolute external URL destinations with status `200` are proxy rules.
 
-## What to tell the user
+## Product Rules
 
-- Always share the live URL from the current publish run.
-- Read and follow the `publish_result.*` lines from stderr.
-- When `publish_result.auth_mode=authenticated`, tell the user the project is managed and does not expire.
-- When `publish_result.auth_mode=anonymous`, tell the user it expires in 24 hours until claimed.
-- Share the `claimUrl` whenever `publish_result.claim_url` is present.
-- When available, also share the immutable deployment URL.
-- Never tell the user to inspect `.stattic/state.json` for claim or auth details.
+Use Stattic's user-facing nouns consistently:
 
-## Common options
+- `project` is the main object.
+- `publish` is the action; `deploy` is only an alias.
+- `deployment` is an immutable snapshot.
+- `domain` is user-facing; avoid `hostname` except for DNS diagnostics.
+- `access token`, `claim token`, and `claim link` have distinct meanings.
 
-| Flag | Description |
-| ---- | ----------- |
-| `--project {ref}` | Update an existing project by id, domain/URL, or slug |
-| `--organization {slug}` | Required with bare slugs and multi-organization claim flows |
-| `--access-token` | One-off managed account token override; prefer login or env |
-| `--claim-token {token}` | Override anonymous project access token |
-| `--client {name}` | Agent attribution header value |
-| `--api-url {url}` | API base override for local development |
+Default to correctness over speed. A publish is complete only when the CLI returns successfully.
+
+## References
+
+- [Product model](../../docs/product.md)
+- [Routing compatibility](../../docs/routing-compatibility.md)
+- [CLI README](./README.md)
+- [CLI publish command](./src/commands/publish.ts)
+- [CLI init command](./src/commands/init.ts)

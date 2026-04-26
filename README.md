@@ -14,11 +14,7 @@ npx skills add batuhan/stattic-skill --skill stattic -g -y
 ./stattic/scripts/publish.sh ./dist
 ```
 
-Update an existing project:
-
-```bash
-./stattic/scripts/publish.sh ./dist --project my-project
-```
+Run the same command again to update the saved project.
 
 ## Repository layout
 

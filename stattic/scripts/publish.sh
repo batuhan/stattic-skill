@@ -7,7 +7,7 @@ Usage: ./scripts/publish.sh <file-or-dir> [stattic publish options]
 
 Examples:
   ./scripts/publish.sh ./dist
-  ./scripts/publish.sh ./dist --project my-project
+  ./scripts/publish.sh ./dist --spa true
 USAGE
   exit 1
 }
@@ -33,21 +33,10 @@ if [[ -n "${STATTIC_CLI_BIN:-}" ]]; then
 elif command -v stattic >/dev/null 2>&1; then
   CLI_CMD=("$(command -v stattic)")
 else
-  die "unable to find the Stattic CLI. Install and review @bi/stattic-cli, then re-run this command."
+  die "unable to find the Stattic CLI. Install and review stattic-cli, then re-run this command."
 fi
-
-CLIENT_VALUE="${STATTIC_PUBLISH_CLIENT:-skills.sh/publish-sh}"
-HAS_CLIENT_FLAG=0
-for arg in "$@"; do
-  if [[ "$arg" == "--client" || "$arg" == --client=* ]]; then
-    HAS_CLIENT_FLAG=1
-    break
-  fi
-done
 
 EXTRA_ARGS=("$@")
-if [[ "$HAS_CLIENT_FLAG" -eq 0 ]]; then
-  EXTRA_ARGS=(--client "$CLIENT_VALUE" "${EXTRA_ARGS[@]}")
-fi
+export STATTIC_CLIENT="${STATTIC_CLIENT:-${STATTIC_PUBLISH_CLIENT:-skills.sh/publish-sh}}"
 
 exec "${CLI_CMD[@]}" publish "$TARGET" "${EXTRA_ARGS[@]}"
