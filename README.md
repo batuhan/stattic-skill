@@ -14,7 +14,7 @@ npx skills add batuhan/stattic-skill --skill stattic -g -y
 ./stattic/scripts/publish.sh ./dist
 ```
 
-Run the same command again to update the saved project.
+Run the same command again to update the saved space.
 
 ## Repository layout
 
